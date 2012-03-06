@@ -1,6 +1,6 @@
 package se.grunka.jeeves.sample;
 
-import se.grunka.jeeves.client.ServiceClient;
+import se.grunka.jeeves.JeevesClient;
 import se.grunka.jeeves.sample.api.HelloWorld;
 
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.concurrent.*;
 public class MyServiceClient {
     public static void main(String[] args) throws Exception {
         long start = System.currentTimeMillis();
-        final HelloWorld helloWorld = ServiceClient.create(HelloWorld.class, "http://localhost:8080/test/rpc");
+        final HelloWorld helloWorld = JeevesClient.create(HelloWorld.class, "http://localhost:8080/test/rpc");
         ExecutorService executorService = Executors.newFixedThreadPool(100, new ThreadFactory() {
             private final ThreadFactory delegate = Executors.defaultThreadFactory();
 

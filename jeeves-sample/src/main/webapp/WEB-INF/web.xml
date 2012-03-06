@@ -6,7 +6,7 @@
     <display-name>Archetype Created Web Application</display-name>
     <servlet>
         <servlet-name>rpc-endpoint</servlet-name>
-        <servlet-class>se.grunka.jeeves.servlet.ServiceServlet</servlet-class>
+        <servlet-class>se.grunka.jeeves.JeevesServlet</servlet-class>
         <init-param>
             <param-name>services</param-name>
             <param-value>

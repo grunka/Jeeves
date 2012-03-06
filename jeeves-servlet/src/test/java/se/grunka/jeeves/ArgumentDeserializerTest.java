@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 import org.junit.Before;
 import org.junit.Test;

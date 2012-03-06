@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 import com.google.inject.Injector;
 import org.junit.Before;

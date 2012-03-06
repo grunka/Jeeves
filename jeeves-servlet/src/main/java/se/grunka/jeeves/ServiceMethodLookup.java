@@ -1,8 +1,4 @@
-package se.grunka.jeeves.servlet;
-
-import se.grunka.jeeves.Method;
-import se.grunka.jeeves.Param;
-import se.grunka.jeeves.Service;
+package se.grunka.jeeves;
 
 import java.lang.annotation.Annotation;
 import java.util.*;

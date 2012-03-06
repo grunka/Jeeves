@@ -1,8 +1,6 @@
-package se.grunka.jeeves.client;
+package se.grunka.jeeves;
 
 import com.google.gson.Gson;
-import se.grunka.jeeves.Param;
-import se.grunka.jeeves.Service;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -19,7 +17,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServiceClient {
+public class JeevesClient {
     private static final Gson GSON = new Gson();
     private static final String POST = "POST";
     private static final String CONTENT_TYPE = "Content-Type";
@@ -93,9 +91,9 @@ public class ServiceClient {
                     writeRequest(arguments, connection);
                     return readResponse(method, connection);
                 } catch (ConnectException e) {
-                    throw new ServiceClientException("Could not connect to " + methodEndpoint.url, e);
+                    throw new JeevesClientException("Could not connect to " + methodEndpoint.url, e);
                 } catch (FileNotFoundException e) {
-                    throw new ServiceClientException("Got 404 for " + methodEndpoint.url, e);
+                    throw new JeevesClientException("Got 404 for " + methodEndpoint.url, e);
                 }
             }
 

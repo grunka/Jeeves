@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 import com.google.gson.Gson;
 import com.google.inject.*;
@@ -16,8 +16,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServiceServlet extends HttpServlet {
-    private static final Logger LOG = LoggerFactory.getLogger(ServiceServlet.class);
+public class JeevesServlet extends HttpServlet {
+    private static final Logger LOG = LoggerFactory.getLogger(JeevesServlet.class);
     private static final String SERVICES_PARAMETER = "services";
     private static final String MODULE_PARAMETER = "module";
     private static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";

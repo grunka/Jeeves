@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 import org.junit.Before;
 import org.junit.Ignore;
@@ -11,14 +11,14 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ServiceServletTest {
+public class JeevesServletTest {
 
-    private ServiceServlet servlet;
+    private JeevesServlet servlet;
     private ServletConfig config;
 
     @Before
     public void before() throws Exception {
-        servlet = new ServiceServlet();
+        servlet = new JeevesServlet();
         config = mock(ServletConfig.class);
     }
 

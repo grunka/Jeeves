@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 import java.util.HashMap;
 import java.util.Map;

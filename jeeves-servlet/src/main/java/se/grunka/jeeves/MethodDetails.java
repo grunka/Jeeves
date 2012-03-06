@@ -1,4 +1,4 @@
-package se.grunka.jeeves.servlet;
+package se.grunka.jeeves;
 
 class MethodDetails {
     public final String[] argumentOrder;

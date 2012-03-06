@@ -1,23 +1,22 @@
-package se.grunka.jeeves.client.client;
+package se.grunka.jeeves;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import se.grunka.jeeves.client.ServiceClient;
 
 import java.io.Serializable;
 
 import static org.junit.Assert.fail;
 
-public class ServiceClientTest {
+public class JeevesClientTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldFailBecauseItIsNotAnInterface() throws Exception {
-        ServiceClient.create(String.class, "nada");
+        JeevesClient.create(String.class, "nada");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldFailBecauseItIsNotAService() throws Exception {
-        ServiceClient.create(Serializable.class, "nada");
+        JeevesClient.create(Serializable.class, "nada");
     }
 
     @Ignore
