@@ -8,6 +8,7 @@ import se.grunka.jeeves.Service;
 public interface HelloWorld {
     @Method("hello")
     String helloWorld();
+
     @Method("hello")
     String helloWho(@Param("name") String who);
 }

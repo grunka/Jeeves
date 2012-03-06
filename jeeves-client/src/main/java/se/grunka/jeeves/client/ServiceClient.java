@@ -1,5 +1,9 @@
 package se.grunka.jeeves.client;
 
+import com.google.gson.Gson;
+import se.grunka.jeeves.Param;
+import se.grunka.jeeves.Service;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,10 +18,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.google.gson.Gson;
-import se.grunka.jeeves.Param;
-import se.grunka.jeeves.Service;
 
 public class ServiceClient {
     private static final Gson GSON = new Gson();

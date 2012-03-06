@@ -1,22 +1,12 @@
 package se.grunka.jeeves.servlet;
 
+import com.google.gson.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
+import java.util.*;
 
 class ArgumentDeserializer {
     private final ThreadLocal<Map<String, Class<?>>> currentParameterTypes = new ThreadLocal<Map<String, Class<?>>>();

@@ -8,6 +8,7 @@ import se.grunka.jeeves.Service;
 public interface TestServiceWithOverloadedMethodsAndDuplicateNames {
     @Method("method")
     void method(@Param("one") String one);
+
     @Method("method")
     void method(@Param("one") int one);
 }

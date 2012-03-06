@@ -1,10 +1,10 @@
 package se.grunka.jeeves.client.client;
 
-import java.io.Serializable;
-
 import org.junit.Ignore;
-import se.grunka.jeeves.client.ServiceClient;
 import org.junit.Test;
+import se.grunka.jeeves.client.ServiceClient;
+
+import java.io.Serializable;
 
 import static org.junit.Assert.fail;
 

@@ -8,6 +8,7 @@ import se.grunka.jeeves.Service;
 public interface TestServiceWithDuplicateDefinition {
     @Method("method")
     void method1(@Param("one") int one);
+
     @Method("method")
     void method2(@Param("one") int one);
 }

@@ -1,11 +1,7 @@
 package se.grunka.jeeves.sample.impl;
 
 import com.google.gson.Gson;
-import se.grunka.jeeves.sample.api.BaseService;
-import se.grunka.jeeves.sample.api.Complex;
-import se.grunka.jeeves.sample.api.ComplexValue;
-import se.grunka.jeeves.sample.api.HelloWorld;
-import se.grunka.jeeves.sample.api.MathOperations;
+import se.grunka.jeeves.sample.api.*;
 
 public class MyService implements HelloWorld, MathOperations, BaseService, Complex {
     @Override

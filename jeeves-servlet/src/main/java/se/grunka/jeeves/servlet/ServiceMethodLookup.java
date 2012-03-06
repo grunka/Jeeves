@@ -1,15 +1,11 @@
 package se.grunka.jeeves.servlet;
 
-import java.lang.annotation.Annotation;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import se.grunka.jeeves.Method;
 import se.grunka.jeeves.Param;
 import se.grunka.jeeves.Service;
+
+import java.lang.annotation.Annotation;
+import java.util.*;
 
 class ServiceMethodLookup {
     private final Map<ServiceMethodKey, ServiceMethod> serviceMethods = new HashMap<ServiceMethodKey, ServiceMethod>();

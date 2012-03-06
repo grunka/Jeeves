@@ -1,11 +1,11 @@
 package se.grunka.jeeves.servlet;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;

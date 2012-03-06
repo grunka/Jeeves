@@ -1,11 +1,11 @@
 package se.grunka.jeeves.servlet;
 
+import com.google.inject.Injector;
+
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.inject.Injector;
 
 class ServiceMethod {
     public final Map<String, Class<?>> parameterTypes = new HashMap<String, Class<?>>();

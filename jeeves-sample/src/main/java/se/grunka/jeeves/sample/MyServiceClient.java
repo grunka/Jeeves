@@ -1,15 +1,11 @@
 package se.grunka.jeeves.sample;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
-
 import se.grunka.jeeves.client.ServiceClient;
 import se.grunka.jeeves.sample.api.HelloWorld;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class MyServiceClient {
     public static void main(String[] args) throws Exception {

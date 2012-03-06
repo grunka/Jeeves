@@ -8,5 +8,6 @@ import se.grunka.jeeves.Service;
 public interface TestService1 {
     @Method("method-one")
     String method1(@Param("parameter-one") String param);
+
     void notAServiceMethod();
 }
