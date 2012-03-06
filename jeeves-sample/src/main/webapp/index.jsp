@@ -16,10 +16,10 @@
         }
         $(function () {
             var d = {"value":{"b": true}};
-            $.post("/test/rpc/service/complex", d, function(data) {
+            $.post("rpc/service/complex", d, function(data) {
                 $('<div>').text(data).appendTo('body').fadeIn(200);
             });
-            jsonPost("/test/rpc/service/complex", d, function(data) {
+            jsonPost("rpc/service/complex", d, function(data) {
                 $('<div>').text(data).appendTo('body').fadeIn(200);
             });
         });
