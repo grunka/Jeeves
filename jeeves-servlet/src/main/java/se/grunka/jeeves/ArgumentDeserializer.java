@@ -7,9 +7,6 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParseException;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,20 +31,18 @@ class ArgumentDeserializer {
         }
     }).create();
 
-    public Map<String, Object> fromJsonInputStream(InputStream inputStream, Map<String, Class<?>> parameterTypes) throws IOException {
-        InputStreamReader reader = new InputStreamReader(inputStream);
+    public Map<String, Object> fromJson(String content, Map<String, Class<?>> parameterTypes) {
         currentParameterTypes.set(parameterTypes);
         try {
-            ArgumentContainer argumentContainer = argumentParser.fromJson(reader, ArgumentContainer.class);
+            ArgumentContainer argumentContainer = argumentParser.fromJson(content, ArgumentContainer.class);
             if (argumentContainer == null) {
                 return Collections.emptyMap();
             } else {
                 return argumentContainer.arguments;
             }
         } catch (JsonParseException e) {
-            throw new IllegalArgumentException("Unable to parse arguments", e);
+            return null;
         } finally {
-            reader.close();
             currentParameterTypes.remove();
         }
     }

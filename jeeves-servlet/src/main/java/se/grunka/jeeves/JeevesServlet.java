@@ -14,7 +14,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
@@ -28,9 +30,11 @@ public class JeevesServlet extends HttpServlet {
     private static final String POST = "POST";
     private static final String GET = "GET";
     private Injector injector = null;
-    private final ServiceMethodLookup lookup = new ServiceMethodLookup();
     private final Gson outputEncoder = new Gson();
     private final ArgumentDeserializer deserializer = new ArgumentDeserializer();
+
+    private final ServiceMethodIndexer indexer = new ServiceMethodIndexer();
+    private final Map<String, ServiceMethod> serviceMethodIndex = new HashMap<String, ServiceMethod>();
 
     @Inject
     public void setInjector(Injector injector) {
@@ -50,115 +54,93 @@ public class JeevesServlet extends HttpServlet {
             throw new ServletException("No services defined");
         }
         for (String serviceType : services.split(",")) {
-            lookup.addService(getType(serviceType));
+            try {
+                indexer.updateIndex(serviceMethodIndex, Class.forName(serviceType));
+            } catch (ClassNotFoundException e) {
+                throw new ServletException("Could not find class " + serviceType);
+            }
         }
     }
 
     @SuppressWarnings("unchecked")
-    private <T> Class<T> getType(String name) throws ServletException {
-        if (name == null) {
-            return null;
-        }
-        try {
-            return (Class<T>) Class.forName(name.trim());
-        } catch (ClassNotFoundException e) {
-            throw new ServletException("Could not load service class " + name.trim(), e);
-        }
-    }
-
     private Module[] getModule(ServletConfig config) throws ServletException {
         String moduleClassName = config.getInitParameter(MODULE_PARAMETER);
-        Class<Module> moduleType = getType(moduleClassName);
-        if (moduleType != null) {
-            try {
-                return new Module[]{moduleType.newInstance()};
-            } catch (InstantiationException e) {
-                throw new ServletException("Could not instantiate module " + moduleClassName, e);
-            } catch (IllegalAccessException e) {
-                throw new ServletException("Was not allowed to instantiate module " + moduleClassName, e);
-            }
-        } else {
+        if (moduleClassName == null) {
             return new Module[0];
+        }
+        try {
+            Class<Module> moduleType = (Class<Module>) Class.forName(moduleClassName);
+            return new Module[]{moduleType.newInstance()};
+        } catch (ClassNotFoundException e) {
+            throw new ServletException("Could not load module class " + moduleClassName);
+        } catch (InstantiationException e) {
+            throw new ServletException("Could not instantiate module " + moduleClassName, e);
+        } catch (IllegalAccessException e) {
+            throw new ServletException("Was not allowed to instantiate module " + moduleClassName, e);
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        handleRequest(req, resp);
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        handleRequest(req, resp);
-    }
-
-    private void handleRequest(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String[] methodPath = getMethodPath(req);
-        ServiceMethod serviceMethod = findServiceMethod(methodPath);
-        if (serviceMethod == null) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-        } else {
-            try {
-                Map<String, Object> arguments = getArguments(req, serviceMethod);
-                Object result = serviceMethod.invoke(injector, arguments);
-                writeResponse(resp, result);
-            } catch (IllegalArgumentException e) {
-                LOG.warn("Request was not allowed", e);
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            } catch (UnsupportedOperationException e) {
-                LOG.warn("Request was not allowed", e);
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            } catch (InvocationTargetException e) {
-                LOG.error("Error while calling service", e);
-                writeException(resp, e.getCause());
-            }
-        }
-    }
-
-    private String[] getMethodPath(HttpServletRequest req) {
-        String methodPath = req.getRequestURI().substring(req.getContextPath().length() + req.getServletPath().length());
-        if (methodPath.startsWith("/")) {
-            methodPath = methodPath.substring(1);
-        }
-        return methodPath.split("/");
-    }
-
-    private ServiceMethod findServiceMethod(String[] segments) {
-        ServiceMethod serviceMethod;
-        if (segments.length > 2) {
-            return null;
-        } else if (segments.length == 0) {
-            serviceMethod = lookup.find("", "");
-        } else if (segments.length == 1) {
-            serviceMethod = lookup.find(segments[0], "");
-            if (serviceMethod == null) {
-                serviceMethod = lookup.find("", segments[0]);
-            }
-        } else {
-            serviceMethod = lookup.find(segments[0], segments[1]);
-        }
-        return serviceMethod;
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getArguments(HttpServletRequest req, ServiceMethod serviceMethod) throws IOException {
         String contentType = req.getContentType();
-        if (contentType != null) {
-            contentType = contentType.toLowerCase();
-        }
-        String method = req.getMethod();
-        if (POST.equals(method)) {
-            if (contentType == null || contentType.startsWith(JSON_CONTENT_TYPE)) {
-                return deserializer.fromJsonInputStream(req.getInputStream(), serviceMethod.parameterTypes);
+        if (contentType != null && !contentType.equals(JSON_CONTENT_TYPE)) {
+            LOG.warn("Request content type not allowed " + contentType);
+            resp.setStatus(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+        } else {
+            String methodPath = req.getRequestURI().substring(req.getContextPath().length() + req.getServletPath().length());
+            ServiceMethod serviceMethod = serviceMethodIndex.get(methodPath);
+            if (serviceMethod == null) {
+                LOG.warn("Request for unknown path " + methodPath);
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             } else {
-                throw new UnsupportedOperationException("Content-type not allowed for POST " + contentType);
+                String content = getContent(req);
+                Map<String, Object> arguments = deserializer.fromJson(content, serviceMethod.parameterTypes);
+                if (arguments == null) {
+                    LOG.warn("Could not parse arguments for " + methodPath);
+                    LOG.debug(content);
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                } else {
+                    MethodDetails methodDetails = serviceMethod.methodDetails.get(arguments.keySet());
+                    if (methodDetails == null) {
+                        LOG.warn("Could not find matching method " + methodPath + " " + arguments.keySet());
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    } else {
+                        Object[] orderedArguments = new Object[methodDetails.argumentOrder.length];
+                        for (int argument = 0; argument < orderedArguments.length; argument++) {
+                            orderedArguments[argument] = arguments.get(methodDetails.argumentOrder[argument]);
+                        }
+                        Object serviceInstance = injector.getInstance(methodDetails.service);
+                        try {
+                            Object result = methodDetails.method.invoke(serviceInstance, orderedArguments);
+                            writeResponse(resp, result);
+                        } catch (IllegalAccessException e) {
+                            LOG.error("Not allowed to call method" ,e);
+                            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        } catch (InvocationTargetException e) {
+                            LOG.error("Error while calling service", e);
+                            writeException(resp, e.getCause());
+                        }
+                    }
+                }
             }
-        } else if (GET.equals(method)) {
-            //TODO maybe allow simple &key=value for string and numbers
-            return new HashMap<String, Object>();
         }
+    }
 
-        throw new UnsupportedOperationException("Could not find an accepted method + content-type combination (" + method + ", " + contentType + ")");
+    private String getContent(HttpServletRequest req) throws IOException {
+        InputStream input = req.getInputStream();
+        try {
+            byte[] buffer = new byte[4096];
+            int bytes;
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            String content = "";
+            while ((bytes = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytes);
+                content += new String(buffer, 0, bytes);
+            }
+            return content;
+        } finally {
+            input.close();
+        }
     }
 
     private void writeException(HttpServletResponse resp, Throwable exception) throws IOException {
