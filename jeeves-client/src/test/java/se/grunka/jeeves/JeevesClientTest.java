@@ -1,11 +1,8 @@
 package se.grunka.jeeves;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
 import java.io.Serializable;
 
-import static org.junit.Assert.fail;
+import org.junit.Test;
 
 public class JeevesClientTest {
 
@@ -19,9 +16,5 @@ public class JeevesClientTest {
         JeevesClient.create(Serializable.class, "nada");
     }
 
-    @Ignore
-    @Test
-    public void shouldTestMore() throws Exception {
-        fail();
-    }
+    //TODO
 }

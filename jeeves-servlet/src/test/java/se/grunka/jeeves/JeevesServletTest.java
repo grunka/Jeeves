@@ -1,13 +1,11 @@
 package se.grunka.jeeves;
 
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 
-import static org.junit.Assert.fail;
+import org.junit.Before;
+import org.junit.Test;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,9 +38,5 @@ public class JeevesServletTest {
         servlet.init(config);
     }
 
-    @Ignore
-    @Test
-    public void shouldTest() throws Exception {
-        fail();
-    }
+    //TODO
 }

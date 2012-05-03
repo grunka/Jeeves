@@ -1,7 +1,11 @@
 package se.grunka.jeeves;
 
 import com.google.gson.Gson;
-import com.google.inject.*;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+import com.google.inject.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +24,6 @@ public class JeevesServlet extends HttpServlet {
     private static final Logger LOG = LoggerFactory.getLogger(JeevesServlet.class);
     private static final String SERVICES_PARAMETER = "services";
     private static final String MODULE_PARAMETER = "module";
-    private static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
     private static final String JSON_CONTENT_TYPE = "application/json";
     private static final String POST = "POST";
     private static final String GET = "GET";
@@ -51,6 +54,18 @@ public class JeevesServlet extends HttpServlet {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private <T> Class<T> getType(String name) throws ServletException {
+        if (name == null) {
+            return null;
+        }
+        try {
+            return (Class<T>) Class.forName(name.trim());
+        } catch (ClassNotFoundException e) {
+            throw new ServletException("Could not load service class " + name.trim(), e);
+        }
+    }
+
     private Module[] getModule(ServletConfig config) throws ServletException {
         String moduleClassName = config.getInitParameter(MODULE_PARAMETER);
         Class<Module> moduleType = getType(moduleClassName);
@@ -67,20 +82,13 @@ public class JeevesServlet extends HttpServlet {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> Class<T> getType(String name) throws ServletException {
-        if (name == null) {
-            return null;
-        }
-        try {
-            return (Class<T>) Class.forName(name.trim());
-        } catch (ClassNotFoundException e) {
-            throw new ServletException("Could not load service class " + name.trim(), e);
-        }
+    @Override
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        handleRequest(req, resp);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         handleRequest(req, resp);
     }
 
@@ -95,46 +103,16 @@ public class JeevesServlet extends HttpServlet {
                 Object result = serviceMethod.invoke(injector, arguments);
                 writeResponse(resp, result);
             } catch (IllegalArgumentException e) {
-                LOG.error("Request was not allowed", e);
+                LOG.warn("Request was not allowed", e);
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             } catch (UnsupportedOperationException e) {
-                LOG.error("Request was not allowed", e);
+                LOG.warn("Request was not allowed", e);
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             } catch (InvocationTargetException e) {
                 LOG.error("Error while calling service", e);
                 writeException(resp, e.getCause());
             }
         }
-    }
-
-    private void writeException(HttpServletResponse resp, Throwable exception) throws IOException {
-        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        Map<String, Object> errorResponse = new HashMap<String, Object>();
-        errorResponse.put("type", exception.getClass().getName());
-        errorResponse.put("message", exception.getMessage());
-        writeResponse(resp, errorResponse);
-    }
-
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> getArguments(HttpServletRequest req, ServiceMethod serviceMethod) throws IOException {
-        String contentType = req.getContentType();
-        String method = req.getMethod();
-        if (POST.equals(method)) {
-            if (contentType != null) {
-                contentType = contentType.toLowerCase();
-                if (contentType.startsWith(FORM_CONTENT_TYPE)) {
-                    return deserializer.fromRequestParameters(req.getParameterMap(), serviceMethod.parameterTypes);
-                } else if (contentType.startsWith(JSON_CONTENT_TYPE)) {
-                    return deserializer.fromJsonInputStream(req.getInputStream(), serviceMethod.parameterTypes);
-                }
-            }
-        } else if (GET.equals(method)) {
-            if (contentType == null) {
-                return deserializer.fromRequestParameters(req.getParameterMap(), serviceMethod.parameterTypes);
-            }
-        }
-
-        throw new UnsupportedOperationException("Could not find an accepted method + content-type combination (" + method + ", " + contentType + ")");
     }
 
     private String[] getMethodPath(HttpServletRequest req) {
@@ -162,6 +140,35 @@ public class JeevesServlet extends HttpServlet {
         return serviceMethod;
     }
 
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getArguments(HttpServletRequest req, ServiceMethod serviceMethod) throws IOException {
+        String contentType = req.getContentType();
+        if (contentType != null) {
+            contentType = contentType.toLowerCase();
+        }
+        String method = req.getMethod();
+        if (POST.equals(method)) {
+            if (contentType == null || contentType.startsWith(JSON_CONTENT_TYPE)) {
+                return deserializer.fromJsonInputStream(req.getInputStream(), serviceMethod.parameterTypes);
+            } else {
+                throw new UnsupportedOperationException("Content-type not allowed for POST " + contentType);
+            }
+        } else if (GET.equals(method)) {
+            //TODO maybe allow simple &key=value for string and numbers
+            return new HashMap<String, Object>();
+        }
+
+        throw new UnsupportedOperationException("Could not find an accepted method + content-type combination (" + method + ", " + contentType + ")");
+    }
+
+    private void writeException(HttpServletResponse resp, Throwable exception) throws IOException {
+        resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        Map<String, String> errorResponse = new HashMap<String, String>();
+        errorResponse.put("type", exception.getClass().getName());
+        errorResponse.put("message", exception.getMessage());
+        writeResponse(resp, errorResponse);
+    }
+
     private void writeResponse(HttpServletResponse resp, Object response) throws IOException {
         OutputStreamWriter writer = new OutputStreamWriter(resp.getOutputStream());
         resp.setContentType(JSON_CONTENT_TYPE);
@@ -170,10 +177,5 @@ public class JeevesServlet extends HttpServlet {
         } finally {
             writer.close();
         }
-    }
-
-    @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        handleRequest(req, resp);
     }
 }

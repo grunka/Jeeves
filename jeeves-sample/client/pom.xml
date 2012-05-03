@@ -6,31 +6,27 @@
 
     <parent>
         <groupId>se.grunka</groupId>
-        <artifactId>jeeves-all</artifactId>
+        <artifactId>jeeves-sample</artifactId>
         <version>1.0</version>
     </parent>
 
     <groupId>se.grunka</groupId>
-    <artifactId>jeeves-sample</artifactId>
-    <packaging>pom</packaging>
+    <artifactId>jeeves-sample-client</artifactId>
 
-    <modules>
-        <module>api</module>
-        <module>service</module>
-        <module>client</module>
-    </modules>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.6.4</version>
+            <groupId>se.grunka</groupId>
+            <artifactId>jeeves-client</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>3.0</version>
+            <groupId>se.grunka</groupId>
+            <artifactId>jeeves-sample-api</artifactId>
+            <version>1.0</version>
         </dependency>
     </dependencies>
-
 </project>

@@ -1,14 +1,21 @@
 package se.grunka.jeeves;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.inject.Injector;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import se.grunka.jeeves.test.*;
-
-import java.util.HashMap;
-import java.util.Map;
+import se.grunka.jeeves.test.NoService;
+import se.grunka.jeeves.test.TestService1;
+import se.grunka.jeeves.test.TestService1Impl;
+import se.grunka.jeeves.test.TestServiceCombined;
+import se.grunka.jeeves.test.TestServiceWithDuplicateDefinitionImpl;
+import se.grunka.jeeves.test.TestServiceWithDuplicateParamsImpl;
+import se.grunka.jeeves.test.TestServiceWithMissingParamImpl;
+import se.grunka.jeeves.test.TestServiceWithOverloadedMethodsAndDuplicateNamesImpl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -119,4 +126,6 @@ public class ServiceMethodLookupTest {
         assertEquals(42, firstResult);
         assertEquals("methodThree", secondResult);
     }
+
+    //TODO
 }

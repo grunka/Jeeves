@@ -1,0 +1,27 @@
+<!DOCTYPE web-app PUBLIC
+        "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+        "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+    <display-name>Archetype Created Web Application</display-name>
+    <servlet>
+        <servlet-name>rpc-endpoint</servlet-name>
+        <servlet-class>se.grunka.jeeves.JeevesServlet</servlet-class>
+        <init-param>
+            <param-name>services</param-name>
+            <param-value>
+                se.grunka.jeeves.sample.MyService
+            </param-value>
+        </init-param>
+        <init-param>
+            <param-name>module</param-name>
+            <!--optional-->
+            <param-value>se.grunka.jeeves.sample.ServiceModule</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>rpc-endpoint</servlet-name>
+        <url-pattern>/rpc/*</url-pattern>
+    </servlet-mapping>
+</web-app>
