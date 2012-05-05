@@ -1,5 +1,6 @@
 package se.grunka.jeeves.io;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -87,11 +88,11 @@ public class HttpClient {
 
     private String read(InputStream input) throws IOException {
         byte[] buffer = new byte[BUFFER_SIZE];
-        String result = "";
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
         int bytes;
         while ((bytes = input.read(buffer)) != -1) {
-            result += new String(buffer, 0, bytes);
+            output.write(buffer, 0, bytes);
         }
-        return result;
+        return output.toString("UTF-8");
     }
 }

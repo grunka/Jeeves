@@ -27,8 +27,7 @@ public class JeevesServlet extends HttpServlet {
     private static final String SERVICES_PARAMETER = "services";
     private static final String MODULE_PARAMETER = "module";
     private static final String JSON_CONTENT_TYPE = "application/json";
-    private static final String POST = "POST";
-    private static final String GET = "GET";
+    private static final int BUFFER_SIZE = 8192;
     private Injector injector = null;
     private final Gson outputEncoder = new Gson();
     private final ArgumentDeserializer deserializer = new ArgumentDeserializer();
@@ -120,6 +119,7 @@ public class JeevesServlet extends HttpServlet {
                             LOG.error("Error while calling service", e);
                             writeException(resp, e.getCause());
                         }
+                        //TODO catch IOException to detect disconnects while writing response
                     }
                 }
             }
@@ -129,15 +129,13 @@ public class JeevesServlet extends HttpServlet {
     private String getContent(HttpServletRequest req) throws IOException {
         InputStream input = req.getInputStream();
         try {
-            byte[] buffer = new byte[4096];
+            byte[] buffer = new byte[BUFFER_SIZE];
             int bytes;
             ByteArrayOutputStream output = new ByteArrayOutputStream();
-            String content = "";
             while ((bytes = input.read(buffer)) != -1) {
                 output.write(buffer, 0, bytes);
-                content += new String(buffer, 0, bytes);
             }
-            return content;
+            return output.toString("UTF-8");
         } finally {
             input.close();
         }
