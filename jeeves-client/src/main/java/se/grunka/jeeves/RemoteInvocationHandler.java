@@ -34,6 +34,7 @@ class RemoteInvocationHandler implements InvocationHandler {
         }
         Map<String, Object> arguments = createArgumentList(args, methodEndpoint);
         Response response = client.post(methodEndpoint.url, GSON.toJson(arguments));
+        //TODO add own exception for connection errors for easier handling
         if (response.status == 200) {
             return GSON.fromJson(response.content, method.getReturnType());
         } else if (response.status == 400) {
