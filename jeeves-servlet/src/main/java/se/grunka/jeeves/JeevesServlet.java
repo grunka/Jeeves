@@ -1,14 +1,5 @@
 package se.grunka.jeeves;
 
-import com.google.gson.Gson;
-import com.google.inject.Guice;
-import com.google.inject.Inject;
-import com.google.inject.Injector;
-import com.google.inject.Module;
-import com.google.inject.Stage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -21,6 +12,15 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.Module;
+import com.google.inject.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class JeevesServlet extends HttpServlet {
     private static final Logger LOG = LoggerFactory.getLogger(JeevesServlet.class);
@@ -114,7 +114,7 @@ public class JeevesServlet extends HttpServlet {
                             Object result = methodDetails.method.invoke(serviceInstance, orderedArguments);
                             writeResponse(resp, result);
                         } catch (IllegalAccessException e) {
-                            LOG.error("Not allowed to call method" ,e);
+                            LOG.error("Not allowed to call method", e);
                             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                         } catch (InvocationTargetException e) {
                             LOG.error("Error while calling service", e);

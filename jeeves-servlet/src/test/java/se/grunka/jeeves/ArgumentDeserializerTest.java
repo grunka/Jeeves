@@ -1,13 +1,14 @@
 package se.grunka.jeeves;
 
-import org.junit.Before;
-import org.junit.Test;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Before;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 public class ArgumentDeserializerTest {
     private ArgumentDeserializer target;
@@ -37,11 +38,11 @@ public class ArgumentDeserializerTest {
         assertEquals(0, result.size());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldFailForMissingTypesForInputStream() throws Exception {
         content = "{missing:whatever}";
         Map<String, Object> result = target.fromJson(content, types);
-        assertEquals(0, result.size());
+        assertNull(result);
     }
 
     //TODO

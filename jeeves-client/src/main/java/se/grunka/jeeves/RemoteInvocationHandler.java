@@ -1,7 +1,9 @@
 package se.grunka.jeeves;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -46,9 +48,12 @@ class RemoteInvocationHandler implements InvocationHandler {
             Class<? extends Exception> exceptionClass = (Class<? extends Exception>) Class.forName(errorResponse.get("type"));
             Constructor<? extends Exception> messageConstructor = exceptionClass.getConstructor(String.class);
             throw messageConstructor.newInstance(errorResponse.get("message"));
+        } else if (response.status < 0) {
+            //TODO handle connection errors
+            throw new IllegalStateException(response.content);
         } else {
             //TODO handle other error, probably not a correct service on the other end
-            throw new Error();
+            throw new Error(response.status + ": " + response.content);
         }
         //TODO handle json parse exceptions
     }

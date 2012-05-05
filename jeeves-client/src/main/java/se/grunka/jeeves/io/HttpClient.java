@@ -2,17 +2,19 @@ package se.grunka.jeeves.io;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
+import java.io.OutputStream;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.nio.charset.Charset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
+    private static final Charset CHARSET = Charset.forName("UTF-8");
 
     public Response post(URL url, String content) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -39,7 +41,6 @@ public class HttpClient {
             LOGGER.warn("No response from server", e);
             return new Response(-2, "No response from server");
         }
-        System.out.println("responseCode = " + responseCode);
         if (responseCode == 200) {
             InputStream input = connection.getInputStream();
             try {
@@ -58,12 +59,12 @@ public class HttpClient {
     }
 
     private void writeRequest(String content, HttpURLConnection connection) throws IOException {
-        OutputStreamWriter writer = new OutputStreamWriter(connection.getOutputStream());
+        OutputStream output = connection.getOutputStream();
         try {
-            writer.write(content);
-            writer.flush();
+            output.write(content.getBytes(CHARSET));
+            output.flush();
         } finally {
-            writer.close();
+            output.close();
         }
     }
 
@@ -79,6 +80,7 @@ public class HttpClient {
         connection.setUseCaches(false);
         connection.setInstanceFollowRedirects(true);
         connection.setDoOutput(true);
+        connection.setConnectTimeout(10000);
     }
 
     private String read(InputStream input) throws IOException {
