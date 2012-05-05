@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ public class JeevesServlet extends HttpServlet {
     private static final String JSON_CONTENT_TYPE = "application/json";
     private static final int BUFFER_SIZE = 8192;
     private static final String UTF8 = "UTF-8";
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private Injector injector = null;
     private final Gson gson = new Gson();
     private final ArgumentDeserializer deserializer = new ArgumentDeserializer();
@@ -83,7 +85,7 @@ public class JeevesServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Response response = getResponse(req, resp);
-        byte[] content = gson.toJson(response.content).getBytes(UTF8);
+        byte[] content = gson.toJson(response.content).getBytes(UTF8_CHARSET);
         resp.setStatus(response.status);
         resp.setContentType(JSON_CONTENT_TYPE);
         ServletOutputStream output = resp.getOutputStream();
