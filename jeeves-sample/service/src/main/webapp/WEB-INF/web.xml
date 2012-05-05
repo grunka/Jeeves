@@ -10,7 +10,7 @@
         <init-param>
             <param-name>services</param-name>
             <param-value>
-                se.grunka.jeeves.sample.MyService
+                se.grunka.jeeves.sample.SampleService
             </param-value>
         </init-param>
         <init-param>

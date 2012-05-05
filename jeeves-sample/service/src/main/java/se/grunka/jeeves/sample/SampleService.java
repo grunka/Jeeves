@@ -2,7 +2,7 @@ package se.grunka.jeeves.sample;
 
 import com.google.gson.Gson;
 
-public class MyService implements HelloWorld, MathOperations, BaseService, Complex {
+public class SampleService implements HelloWorld, MathOperations, BaseService, Complex {
     @Override
     public String helloWorld() {
         return helloWho("World");

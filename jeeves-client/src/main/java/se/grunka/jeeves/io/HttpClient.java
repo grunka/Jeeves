@@ -14,7 +14,9 @@ import org.slf4j.LoggerFactory;
 
 public class HttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
-    private static final Charset CHARSET = Charset.forName("UTF-8");
+    private static final Charset UTF8 = Charset.forName("UTF-8");
+    private static final int BUFFER_SIZE = 8192;
+    private static final int CONNECTION_TIMEOUT = 10000;
 
     public Response post(URL url, String content) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -61,7 +63,7 @@ public class HttpClient {
     private void writeRequest(String content, HttpURLConnection connection) throws IOException {
         OutputStream output = connection.getOutputStream();
         try {
-            output.write(content.getBytes(CHARSET));
+            output.write(content.getBytes(UTF8));
             output.flush();
         } finally {
             output.close();
@@ -80,11 +82,11 @@ public class HttpClient {
         connection.setUseCaches(false);
         connection.setInstanceFollowRedirects(true);
         connection.setDoOutput(true);
-        connection.setConnectTimeout(10000);
+        connection.setConnectTimeout(CONNECTION_TIMEOUT);
     }
 
     private String read(InputStream input) throws IOException {
-        byte[] buffer = new byte[4096];
+        byte[] buffer = new byte[BUFFER_SIZE];
         String result = "";
         int bytes;
         while ((bytes = input.read(buffer)) != -1) {

@@ -26,9 +26,10 @@ class ServiceMethodIndexer {
             return;
         }
         String url = service.value();
-        if (!url.startsWith("/")) {
-            url = "/" + url;
+        if (url.contains("/")) {
+            throw new IllegalArgumentException("Service name " + url + " contains illegal character '/");
         }
+        url = "/" + url;
         if (!url.endsWith("/")) {
             url = url + "/";
         }
@@ -42,8 +43,8 @@ class ServiceMethodIndexer {
                 continue;
             }
             String methodName = methodAnnotation.value();
-            if (methodName.startsWith("/")) {
-                methodName = methodName.substring(1);
+            if (methodName.contains("/")) {
+                throw new IllegalArgumentException("Method name " + methodName + " contains illegal character '/'");
             }
             String serviceUrl = url + methodName;
             ServiceMethod serviceMethod = serviceMethodIndex.get(serviceUrl);

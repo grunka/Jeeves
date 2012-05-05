@@ -36,14 +36,15 @@ public class JeevesClient {
 
     private static String createServicePath(String uri, Service service) {
         String servicePath = uri;
-        if (!service.value().isEmpty()) {
-            if (!servicePath.endsWith("/")) {
-                servicePath += "/";
-            }
-            servicePath += service.value();
-            if (!servicePath.endsWith("/")) {
-                servicePath += "/";
-            }
+        if (service.value().contains("/")) {
+            throw new IllegalArgumentException("Service named " + service.value() + " contains illegal character '/'");
+        }
+        if (!servicePath.endsWith("/")) {
+            servicePath += "/";
+        }
+        servicePath += service.value();
+        if (!servicePath.endsWith("/")) {
+            servicePath += "/";
         }
         return servicePath;
     }
