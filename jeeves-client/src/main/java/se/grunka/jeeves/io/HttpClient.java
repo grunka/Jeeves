@@ -24,9 +24,8 @@ public class HttpClient {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         try {
             prepareConnection(connection);
-
             try {
-                writeRequest(content, connection);
+                writeRequest(content.getBytes(UTF8_CHARSET), connection);
             } catch (ConnectException e) {
                 LOGGER.warn("Could not open socket", e);
                 return new Response(-1, "Could not open socket");
@@ -45,27 +44,19 @@ public class HttpClient {
             LOGGER.warn("No response from server", e);
             return new Response(-2, "No response from server");
         }
+        InputStream input;
         if (responseCode == 200) {
-            InputStream input = connection.getInputStream();
-            try {
-                return new Response(responseCode, readFully(input));
-            } finally {
-                input.close();
-            }
+            input = connection.getInputStream();
         } else {
-            InputStream error = connection.getErrorStream();
-            try {
-                return new Response(responseCode, readFully(error));
-            } finally {
-                error.close();
-            }
+            input = connection.getErrorStream();
         }
+        return new Response(responseCode, readFullyAndClose(input));
     }
 
-    private void writeRequest(String content, HttpURLConnection connection) throws IOException {
+    private void writeRequest(byte[] content, HttpURLConnection connection) throws IOException {
         OutputStream output = connection.getOutputStream();
         try {
-            output.write(content.getBytes(UTF8_CHARSET));
+            output.write(content);
             output.flush();
         } finally {
             output.close();
@@ -88,13 +79,17 @@ public class HttpClient {
         connection.setReadTimeout(0);
     }
 
-    private String readFully(InputStream input) throws IOException {
-        byte[] buffer = new byte[BUFFER_SIZE];
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        int bytes;
-        while ((bytes = input.read(buffer)) != -1) {
-            output.write(buffer, 0, bytes);
+    private String readFullyAndClose(InputStream input) throws IOException {
+        try {
+            byte[] buffer = new byte[BUFFER_SIZE];
+            int bytes;
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            while ((bytes = input.read(buffer)) != -1) {
+                output.write(buffer, 0, bytes);
+            }
+            return output.toString(UTF8);
+        } finally {
+            input.close();
         }
-        return output.toString(UTF8);
     }
 }

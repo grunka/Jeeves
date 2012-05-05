@@ -25,7 +25,6 @@ class RemoteInvocationHandler implements InvocationHandler {
         this.methodEndpoints = methodEndpoints;
         this.client = client;
     }
-    //TODO test
 
     @Override
     public Object invoke(Object proxy, java.lang.reflect.Method method, Object[] args) throws Throwable {
