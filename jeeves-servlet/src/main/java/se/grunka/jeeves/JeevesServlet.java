@@ -2,14 +2,15 @@ package se.grunka.jeeves;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,8 +29,10 @@ public class JeevesServlet extends HttpServlet {
     private static final String MODULE_PARAMETER = "module";
     private static final String JSON_CONTENT_TYPE = "application/json";
     private static final int BUFFER_SIZE = 8192;
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    private static final String UTF8 = "UTF-8";
     private Injector injector = null;
-    private final Gson outputEncoder = new Gson();
+    private final Gson gson = new Gson();
     private final ArgumentDeserializer deserializer = new ArgumentDeserializer();
 
     private final ServiceMethodIndexer indexer = new ServiceMethodIndexer();
@@ -139,7 +142,7 @@ public class JeevesServlet extends HttpServlet {
         while ((bytes = input.read(buffer)) != -1) {
             output.write(buffer, 0, bytes);
         }
-        return output.toString("UTF-8");
+        return output.toString(UTF8);
     }
 
     private void writeException(HttpServletResponse resp, Throwable exception) throws IOException {
@@ -151,12 +154,14 @@ public class JeevesServlet extends HttpServlet {
     }
 
     private void writeResponse(HttpServletResponse resp, Object response) throws IOException {
-        OutputStreamWriter writer = new OutputStreamWriter(resp.getOutputStream());
         resp.setContentType(JSON_CONTENT_TYPE);
+        String content = gson.toJson(response);
+        ServletOutputStream output = resp.getOutputStream();
         try {
-            outputEncoder.toJson(response, writer);
+            output.write(content.getBytes(UTF8_CHARSET));
+            output.flush();
         } finally {
-            writer.close();
+            output.close();
         }
     }
 }
