@@ -47,14 +47,14 @@ public class HttpClient {
         if (responseCode == 200) {
             InputStream input = connection.getInputStream();
             try {
-                return new Response(responseCode, read(input));
+                return new Response(responseCode, readFully(input));
             } finally {
                 input.close();
             }
         } else {
             InputStream error = connection.getErrorStream();
             try {
-                return new Response(responseCode, read(error));
+                return new Response(responseCode, readFully(error));
             } finally {
                 error.close();
             }
@@ -86,7 +86,7 @@ public class HttpClient {
         connection.setConnectTimeout(CONNECTION_TIMEOUT);
     }
 
-    private String read(InputStream input) throws IOException {
+    private String readFully(InputStream input) throws IOException {
         byte[] buffer = new byte[BUFFER_SIZE];
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         int bytes;

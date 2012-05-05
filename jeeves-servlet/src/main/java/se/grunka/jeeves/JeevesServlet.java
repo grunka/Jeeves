@@ -92,7 +92,13 @@ public class JeevesServlet extends HttpServlet {
                 LOG.warn("Request for unknown path " + methodPath);
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             } else {
-                String content = getContent(req);
+                String content;
+                InputStream input = req.getInputStream();
+                try {
+                    content = readFully(input);
+                } finally {
+                    input.close();
+                }
                 Map<String, Object> arguments = deserializer.fromJson(content, serviceMethod.parameterTypes);
                 if (arguments == null) {
                     LOG.warn("Could not parse arguments for " + methodPath);
@@ -126,19 +132,14 @@ public class JeevesServlet extends HttpServlet {
         }
     }
 
-    private String getContent(HttpServletRequest req) throws IOException {
-        InputStream input = req.getInputStream();
-        try {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int bytes;
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            while ((bytes = input.read(buffer)) != -1) {
-                output.write(buffer, 0, bytes);
-            }
-            return output.toString("UTF-8");
-        } finally {
-            input.close();
+    private String readFully(InputStream input) throws IOException {
+        byte[] buffer = new byte[BUFFER_SIZE];
+        int bytes;
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        while ((bytes = input.read(buffer)) != -1) {
+            output.write(buffer, 0, bytes);
         }
+        return output.toString("UTF-8");
     }
 
     private void writeException(HttpServletResponse resp, Throwable exception) throws IOException {
