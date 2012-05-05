@@ -13,7 +13,7 @@ public class SampleClient {
 
     public static void main(String[] args) throws Exception {
         final HelloWorld helloWorld = JeevesClient.create(HelloWorld.class, "http://localhost:8080/rpc");
-        ExecutorService executorService = Executors.newFixedThreadPool(200);
+        ExecutorService executorService = Executors.newFixedThreadPool(20);
         long start = System.currentTimeMillis();
         LOGGER.info("Starting");
         for (int i = 0; i < 10000; i++) {
