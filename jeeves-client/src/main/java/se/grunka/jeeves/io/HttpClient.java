@@ -17,8 +17,8 @@ public class HttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
     private static final int BUFFER_SIZE = 8192;
-    private static final int CONNECTION_TIMEOUT = 10000;
     private static final String UTF8 = "UTF-8";
+    private static final int CONNECTION_TIMEOUT = 10000;
 
     public Response post(URL url, String content) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -85,6 +85,7 @@ public class HttpClient {
         connection.setInstanceFollowRedirects(true);
         connection.setDoOutput(true);
         connection.setConnectTimeout(CONNECTION_TIMEOUT);
+        connection.setReadTimeout(0);
     }
 
     private String readFully(InputStream input) throws IOException {
