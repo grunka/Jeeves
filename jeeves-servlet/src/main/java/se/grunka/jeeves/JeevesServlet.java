@@ -2,14 +2,13 @@ package se.grunka.jeeves;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.xml.ws.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -85,10 +84,60 @@ public class JeevesServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        Object response = getResponse(req, resp);
-        byte[] content = gson.toJson(response).getBytes(UTF8_CHARSET);
         resp.setContentType(JSON_CONTENT_TYPE);
-        ServletOutputStream output = resp.getOutputStream();
+        String contentType = req.getContentType();
+        if (contentType != null && !contentType.equals(JSON_CONTENT_TYPE)) {
+            LOG.warn("Request content type not allowed " + contentType);
+            resp.setStatus(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
+            writeResponseAndClose(new Message("Unsupported content type"), resp.getOutputStream());
+        } else {
+            String methodPath = req.getRequestURI().substring(req.getContextPath().length() + req.getServletPath().length());
+            ServiceMethod serviceMethod = serviceMethodIndex.get(methodPath);
+            if (serviceMethod == null) {
+                LOG.warn("Request for unknown path " + methodPath);
+                resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                writeResponseAndClose(new Message("Method not found"), resp.getOutputStream());
+            } else {
+                String content = readFullyAndClose(req.getInputStream());
+                Map<String, Object> arguments = deserializer.fromJson(content, serviceMethod.parameterTypes);
+                if (arguments == null) {
+                    LOG.warn("Could not parse arguments for " + methodPath);
+                    LOG.debug(content);
+                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                    writeResponseAndClose(new Message("Bad parameters"), resp.getOutputStream());
+                } else {
+                    MethodDetails methodDetails = serviceMethod.methodDetails.get(arguments.keySet());
+                    if (methodDetails == null) {
+                        LOG.warn("Could not find matching method " + methodPath + " " + arguments.keySet());
+                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                        writeResponseAndClose(new Message("No matching method found"), resp.getOutputStream());
+                    } else {
+                        Object[] orderedArguments = new Object[methodDetails.argumentOrder.length];
+                        for (int argument = 0; argument < orderedArguments.length; argument++) {
+                            orderedArguments[argument] = arguments.get(methodDetails.argumentOrder[argument]);
+                        }
+                        Object serviceInstance = injector.getInstance(methodDetails.service);
+                        try {
+                            Object result = methodDetails.method.invoke(serviceInstance, orderedArguments);
+                            writeResponseAndClose(result, resp.getOutputStream());
+                        } catch (IllegalAccessException e) {
+                            LOG.error("Not allowed to call method", e);
+                            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                            writeResponseAndClose(new Message("Method not allowed"), resp.getOutputStream());
+                        } catch (InvocationTargetException e) {
+                            LOG.error("Error while calling service", e);
+                            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                            Throwable cause = e.getCause();
+                            writeResponseAndClose(new Message(cause.getClass().getName(), cause.getMessage()), resp.getOutputStream());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void writeResponseAndClose(Object response, OutputStream output) throws IOException {
+        byte[] content = gson.toJson(response).getBytes(UTF8_CHARSET);
         try {
             output.write(content);
             output.flush();
@@ -96,53 +145,6 @@ public class JeevesServlet extends HttpServlet {
             LOG.error("Failed to write response", e);
         } finally {
             output.close();
-        }
-    }
-
-    private Object getResponse(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        String contentType = req.getContentType();
-        if (contentType != null && !contentType.equals(JSON_CONTENT_TYPE)) {
-            LOG.warn("Request content type not allowed " + contentType);
-            resp.setStatus(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
-            return new Message("Unsupported content type");
-        }
-        String methodPath = req.getRequestURI().substring(req.getContextPath().length() + req.getServletPath().length());
-        ServiceMethod serviceMethod = serviceMethodIndex.get(methodPath);
-        if (serviceMethod == null) {
-            LOG.warn("Request for unknown path " + methodPath);
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            return new Message("Method not found");
-        }
-        String content = readFullyAndClose(req.getInputStream());
-        Map<String, Object> arguments = deserializer.fromJson(content, serviceMethod.parameterTypes);
-        if (arguments == null) {
-            LOG.warn("Could not parse arguments for " + methodPath);
-            LOG.debug(content);
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return new Message("Bad parameters");
-        }
-        MethodDetails methodDetails = serviceMethod.methodDetails.get(arguments.keySet());
-        if (methodDetails == null) {
-            LOG.warn("Could not find matching method " + methodPath + " " + arguments.keySet());
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            return new Message("No matching method found");
-        }
-        Object[] orderedArguments = new Object[methodDetails.argumentOrder.length];
-        for (int argument = 0; argument < orderedArguments.length; argument++) {
-            orderedArguments[argument] = arguments.get(methodDetails.argumentOrder[argument]);
-        }
-        Object serviceInstance = injector.getInstance(methodDetails.service);
-        try {
-            return methodDetails.method.invoke(serviceInstance, orderedArguments);
-        } catch (IllegalAccessException e) {
-            LOG.error("Not allowed to call method", e);
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return new Message("Method not allowed");
-        } catch (InvocationTargetException e) {
-            LOG.error("Error while calling service", e);
-            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            Throwable cause = e.getCause();
-            return new Message(cause.getClass().getName(), cause.getMessage());
         }
     }
 
