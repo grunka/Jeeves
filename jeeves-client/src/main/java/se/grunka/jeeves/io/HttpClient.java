@@ -1,42 +1,40 @@
 package se.grunka.jeeves.io;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.net.ConnectException;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.nio.charset.Charset;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.grunka.jeeves.Message;
+import se.grunka.jeeves.ObjectStreamer;
 
 public class HttpClient {
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClient.class);
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
-    private static final int BUFFER_SIZE = 8192;
-    private static final String UTF8 = "UTF-8";
+    private static final ObjectStreamer STREAMER = new ObjectStreamer();
     private static final int CONNECTION_TIMEOUT = 10000;
 
-    public Response post(URL url, String content) throws IOException {
+    public Response request(URL url, Object content, Type returnType) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         try {
             prepareConnection(connection);
             try {
-                writeRequest(content.getBytes(UTF8_CHARSET), connection);
+                STREAMER.write(connection.getOutputStream(), content);
             } catch (ConnectException e) {
                 LOGGER.warn("Could not open socket", e);
                 return new Response(-1, "Could not open socket");
             }
-            return readResponse(connection);
+            return readResponse(connection, returnType);
         } finally {
             connection.disconnect();
         }
     }
 
-    private Response readResponse(HttpURLConnection connection) throws IOException {
+    private Response readResponse(HttpURLConnection connection, Type returnType) throws IOException {
         int responseCode;
         try {
             responseCode = connection.getResponseCode();
@@ -49,18 +47,10 @@ public class HttpClient {
             input = connection.getInputStream();
         } else {
             input = connection.getErrorStream();
+            returnType = Message.class;
         }
-        return new Response(responseCode, readFullyAndClose(input));
-    }
-
-    private void writeRequest(byte[] content, HttpURLConnection connection) throws IOException {
-        OutputStream output = connection.getOutputStream();
-        try {
-            output.write(content);
-            output.flush();
-        } finally {
-            output.close();
-        }
+        return new Response(responseCode, STREAMER.read(input, returnType));
+        //TODO handle json parse exceptions
     }
 
     private void prepareConnection(HttpURLConnection connection) {
@@ -77,19 +67,5 @@ public class HttpClient {
         connection.setDoOutput(true);
         connection.setConnectTimeout(CONNECTION_TIMEOUT);
         connection.setReadTimeout(0);
-    }
-
-    private String readFullyAndClose(InputStream input) throws IOException {
-        try {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int bytes;
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            while ((bytes = input.read(buffer)) != -1) {
-                output.write(buffer, 0, bytes);
-            }
-            return output.toString(UTF8);
-        } finally {
-            input.close();
-        }
     }
 }

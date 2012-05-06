@@ -2,9 +2,9 @@ package se.grunka.jeeves.io;
 
 public class Response {
     public final int status;
-    public final String content;
+    public final Object content;
 
-    public Response(int status, String content) {
+    public Response(int status, Object content) {
         this.status = status;
         this.content = content;
     }

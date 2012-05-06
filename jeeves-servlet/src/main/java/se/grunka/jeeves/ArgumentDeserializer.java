@@ -1,6 +1,12 @@
 package se.grunka.jeeves;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,18 +36,24 @@ class ArgumentDeserializer {
             return result;
         }
     }).create();
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
-    public Map<String, Object> fromJson(String content, Map<String, Class<?>> parameterTypes) {
+    public Map<String, Object> fromJson(InputStream input, Map<String, Class<?>> parameterTypes) throws IOException {
         currentParameterTypes.set(parameterTypes);
         try {
-            ArgumentContainer argumentContainer = argumentParser.fromJson(content, ArgumentContainer.class);
-            if (argumentContainer == null) {
-                return Collections.emptyMap();
-            } else {
-                return argumentContainer.arguments;
+            Reader reader = new BufferedReader(new InputStreamReader(input, UTF8_CHARSET));
+            try {
+                ArgumentContainer argumentContainer = argumentParser.fromJson(reader, ArgumentContainer.class);
+                if (argumentContainer == null) {
+                    return Collections.emptyMap();
+                } else {
+                    return argumentContainer.arguments;
+                }
+            } catch (JsonParseException e) {
+                return null;
+            } finally {
+                reader.close();
             }
-        } catch (JsonParseException e) {
-            return null;
         } finally {
             currentParameterTypes.remove();
         }

@@ -2,19 +2,18 @@ package se.grunka.jeeves;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.charset.Charset;
+import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
-import com.google.gson.Gson;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
@@ -28,14 +27,11 @@ public class JeevesServlet extends HttpServlet {
     private static final String SERVICES_PARAMETER = "services";
     private static final String MODULE_PARAMETER = "module";
     private static final String JSON_CONTENT_TYPE = "application/json";
-    private static final int BUFFER_SIZE = 8192;
-    private static final String UTF8 = "UTF-8";
-    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    private static final ObjectStreamer STREAMER = new ObjectStreamer();
+    private static final AnnotationProcessor ANNOTATION_PROCESSOR = new AnnotationProcessor();
     private Injector injector = null;
-    private final Gson gson = new Gson();
     private final ArgumentDeserializer deserializer = new ArgumentDeserializer();
 
-    private final ServiceMethodIndexer indexer = new ServiceMethodIndexer();
     private final Map<String, ServiceMethod> serviceMethodIndex = new HashMap<String, ServiceMethod>();
 
     @Inject
@@ -55,12 +51,29 @@ public class JeevesServlet extends HttpServlet {
         if (services == null || services.trim().isEmpty()) {
             throw new ServletException("No services defined");
         }
-        for (String serviceType : services.split(",")) {
+        for (String serviceTypeName : services.split(",")) {
+            final Class<?> serviceType;
             try {
-                indexer.updateIndex(serviceMethodIndex, Class.forName(serviceType));
+                serviceType = Class.forName(serviceTypeName);
             } catch (ClassNotFoundException e) {
-                throw new ServletException("Could not find class " + serviceType);
+                throw new ServletException("Could not find class " + serviceTypeName);
             }
+            ANNOTATION_PROCESSOR.processService(serviceType, new AnnotationProcessor.Callback() {
+                @Override
+                public void method(String path, Method method, String[] names, Class<?>[] types) {
+                    ServiceMethod serviceMethod = serviceMethodIndex.get(path);
+                    if (serviceMethod == null) {
+                        serviceMethod = new ServiceMethod();
+                        serviceMethodIndex.put(path, serviceMethod);
+                    }
+                    Set<String> namesSet = new HashSet<String>();
+                    for (int i = 0; i < names.length; i++) {
+                        namesSet.add(names[i]);
+                        serviceMethod.parameterTypes.put(names[i], types[i]);
+                    }
+                    serviceMethod.methodDetails.put(namesSet, new MethodDetails(serviceType, method, names));
+                }
+            });
         }
     }
 
@@ -89,28 +102,33 @@ public class JeevesServlet extends HttpServlet {
         if (contentType != null && !contentType.equals(JSON_CONTENT_TYPE)) {
             LOG.warn("Request content type not allowed " + contentType);
             resp.setStatus(HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE);
-            writeResponseAndClose(new Message("Unsupported content type"), resp.getOutputStream());
+            STREAMER.write(resp.getOutputStream(), new Message("Unsupported content type"));
         } else {
             String methodPath = req.getRequestURI().substring(req.getContextPath().length() + req.getServletPath().length());
             ServiceMethod serviceMethod = serviceMethodIndex.get(methodPath);
             if (serviceMethod == null) {
                 LOG.warn("Request for unknown path " + methodPath);
                 resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                writeResponseAndClose(new Message("Method not found"), resp.getOutputStream());
+                STREAMER.write(resp.getOutputStream(), new Message("Method not found"));
             } else {
-                String content = readFullyAndClose(req.getInputStream());
-                Map<String, Object> arguments = deserializer.fromJson(content, serviceMethod.parameterTypes);
+                ServletInputStream input = req.getInputStream();
+                Map<String, Object> arguments;
+                try {
+                    arguments = deserializer.fromJson(input, serviceMethod.parameterTypes);
+                } finally {
+                    input.close();
+                }
                 if (arguments == null) {
                     LOG.warn("Could not parse arguments for " + methodPath);
-                    LOG.debug(content);
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    writeResponseAndClose(new Message("Bad parameters"), resp.getOutputStream());
+                    STREAMER.write(resp.getOutputStream(), new Message("Bad parameters"));
                 } else {
+                    //TODO this lookup could probably be improved
                     MethodDetails methodDetails = serviceMethod.methodDetails.get(arguments.keySet());
                     if (methodDetails == null) {
                         LOG.warn("Could not find matching method " + methodPath + " " + arguments.keySet());
                         resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-                        writeResponseAndClose(new Message("No matching method found"), resp.getOutputStream());
+                        STREAMER.write(resp.getOutputStream(), new Message("No matching method found"));
                     } else {
                         Object[] orderedArguments = new Object[methodDetails.argumentOrder.length];
                         for (int argument = 0; argument < orderedArguments.length; argument++) {
@@ -119,16 +137,16 @@ public class JeevesServlet extends HttpServlet {
                         Object serviceInstance = injector.getInstance(methodDetails.service);
                         try {
                             Object result = methodDetails.method.invoke(serviceInstance, orderedArguments);
-                            writeResponseAndClose(result, resp.getOutputStream());
+                            STREAMER.write(resp.getOutputStream(), result);
                         } catch (IllegalAccessException e) {
                             LOG.error("Not allowed to call method", e);
                             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                            writeResponseAndClose(new Message("Method not allowed"), resp.getOutputStream());
+                            STREAMER.write(resp.getOutputStream(), new Message("Method not allowed"));
                         } catch (InvocationTargetException e) {
                             LOG.error("Error while calling service", e);
                             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                             Throwable cause = e.getCause();
-                            writeResponseAndClose(new Message(cause.getClass().getName(), cause.getMessage()), resp.getOutputStream());
+                            STREAMER.write(resp.getOutputStream(), new Message(cause.getClass().getName(), cause.getMessage()));
                         }
                     }
                 }
@@ -136,29 +154,4 @@ public class JeevesServlet extends HttpServlet {
         }
     }
 
-    private void writeResponseAndClose(Object response, OutputStream output) throws IOException {
-        byte[] content = gson.toJson(response).getBytes(UTF8_CHARSET);
-        try {
-            output.write(content);
-            output.flush();
-        } catch (IOException e) {
-            LOG.error("Failed to write response", e);
-        } finally {
-            output.close();
-        }
-    }
-
-    private String readFullyAndClose(InputStream input) throws IOException {
-        try {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            int bytes;
-            ByteArrayOutputStream output = new ByteArrayOutputStream();
-            while ((bytes = input.read(buffer)) != -1) {
-                output.write(buffer, 0, bytes);
-            }
-            return output.toString(UTF8);
-        } finally {
-            input.close();
-        }
-    }
 }

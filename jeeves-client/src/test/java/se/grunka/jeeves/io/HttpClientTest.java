@@ -18,7 +18,7 @@ public class HttpClientTest {
 
     @Test
     public void shouldDoIt() throws Exception {
-        Response response = httpClient.post(new URL("http://localhost:8000"), "hello\n");
+        Response response = httpClient.request(new URL("http://localhost:8000"), "hello\n", null);
         assertEquals(-1, response.status);
     }
 

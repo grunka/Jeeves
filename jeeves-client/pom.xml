@@ -20,7 +20,7 @@
     <dependencies>
         <dependency>
             <groupId>se.grunka</groupId>
-            <artifactId>jeeves-annotations</artifactId>
+            <artifactId>jeeves-common</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

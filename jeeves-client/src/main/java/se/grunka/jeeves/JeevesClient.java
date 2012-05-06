@@ -3,13 +3,16 @@ package se.grunka.jeeves;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
 import se.grunka.jeeves.io.HttpClient;
 
 public class JeevesClient {
     private static final HttpClient CLIENT = new HttpClient();
-    private static final MethodEndpointIndexer INDEXER = new MethodEndpointIndexer();
+    private static final AnnotationProcessor ANNOTATION_PROCESSOR = new AnnotationProcessor();
 
     @SuppressWarnings("unchecked")
     public static <T> T create(Class<T> type, String uri) {
@@ -17,35 +20,26 @@ public class JeevesClient {
     }
 
     private static <T> InvocationHandler createInvocationHandler(Class<T> type, String uri) {
-        Service service = ensureService(type);
-        String servicePath = createServicePath(uri, service);
-        final Map<Method, MethodEndpoint> methodEndpoints = INDEXER.createIndex(type, servicePath);
+        final String serviceUri;
+        if (uri.endsWith("/")) {
+            serviceUri = uri.substring(0, uri.length() - 2);
+        } else {
+            serviceUri = uri;
+        }
+        final Map<Method, MethodEndpoint> methodEndpoints = new HashMap<Method, MethodEndpoint>();
+        ANNOTATION_PROCESSOR.process(type, new AnnotationProcessor.Callback() {
+            @Override
+            public void method(String path, Method method, String[] names, Class<?>[] types) {
+                try {
+                    methodEndpoints.put(method, new MethodEndpoint(new URL(serviceUri + path), names, method.getReturnType()));
+                } catch (MalformedURLException e) {
+                    throw new Error("The generated url is malformed", e);
+                }
+            }
+        });
+        if (methodEndpoints.isEmpty()) {
+            throw new Error("No properly configured method endpoints were found for " + type.getName());
+        }
         return new RemoteInvocationHandler(methodEndpoints, CLIENT);
-    }
-
-    private static <T> Service ensureService(Class<T> type) {
-        if (!type.isInterface()) {
-            throw new IllegalArgumentException("Only interfaces are allowed");
-        }
-        Service service = type.getAnnotation(Service.class);
-        if (service == null) {
-            throw new IllegalArgumentException("Not annotated with @Service");
-        }
-        return service;
-    }
-
-    private static String createServicePath(String uri, Service service) {
-        String servicePath = uri;
-        if (service.value().contains("/")) {
-            throw new IllegalArgumentException("Service named " + service.value() + " contains illegal character '/'");
-        }
-        if (!servicePath.endsWith("/")) {
-            servicePath += "/";
-        }
-        servicePath += service.value();
-        if (!servicePath.endsWith("/")) {
-            servicePath += "/";
-        }
-        return servicePath;
     }
 }

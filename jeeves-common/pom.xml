@@ -11,7 +11,7 @@
     </parent>
 
     <groupId>se.grunka</groupId>
-    <artifactId>jeeves-servlet</artifactId>
+    <artifactId>jeeves-common</artifactId>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -20,19 +20,8 @@
     <dependencies>
         <dependency>
             <groupId>se.grunka</groupId>
-            <artifactId>jeeves-common</artifactId>
+            <artifactId>jeeves-annotations</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>3.0</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
-        </dependency>
     </dependencies>
-
 </project>
