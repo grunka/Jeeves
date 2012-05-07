@@ -13,14 +13,17 @@ public class SampleClient {
 
     public static void main(String[] args) throws Exception {
         final HelloWorld helloWorld = JeevesClient.create(HelloWorld.class, "http://localhost:8080/rpc");
-        ExecutorService executorService = Executors.newFixedThreadPool(20);
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         long start = System.currentTimeMillis();
         LOGGER.info("Starting");
         for (int i = 0; i < 10000; i++) {
             executorService.submit(new Runnable() {
                 @Override
                 public void run() {
+                    long one = System.currentTimeMillis();
                     String result = helloWorld.helloWho("You");
+                    long two = System.currentTimeMillis() - one;
+                    LOGGER.debug("duration = " + two);
                     if (!"Hello You!".equals(result)) {
                         LOGGER.error("Did not get the expected result");
                     }
